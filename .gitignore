@@ -160,3 +160,9 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+data/proteingym_v1/residue_sequence
+data/proteingym_v1/structure_sequence
+data/proteingym_v1/substitutions
+data/proteingym_v1/sequence_alignments
+result/
