@@ -12,10 +12,47 @@ from argparse import ArgumentParser
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def read_multi_fasta(file_path):
+    """
+    params:
+        file_path: path to a fasta file
+    return:
+        a dictionary of sequences
+    """
+    sequences = {}
+    current_sequence = ''
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith('>'):
+                if current_sequence:
+                    sequences[header] = current_sequence.upper()
+                    current_sequence = ''
+                header = line
+            else:
+                current_sequence += line
+        if current_sequence:
+            sequences[header] = current_sequence
+    return sequences
+
+
 def read_seq(fasta):
     for record in SeqIO.parse(fasta, "fasta"):
         return str(record.seq)
 
+def count_matrix_from_alignment(tokenizer, alignment_file):
+    alignment_dict = read_multi_fasta(alignment_file)
+    aln_start, aln_end = list(alignment_dict.keys())[0].split('/')[-1].split('-')
+    alignment_seqs = list(alignment_dict.values())
+    print(f">>> Alignment start: {aln_start}, end: {aln_end}, start tokenizer")
+    tokenized_results = tokenizer(alignment_seqs, return_tensors="pt", padding=True)
+    alignment_ids = tokenized_results["input_ids"][:,1:-1]
+    # count distribution of each column, [seq_len, vocab_size]
+    count_matrix = torch.zeros(alignment_ids.size(1), tokenizer.vocab_size)
+    for i in tqdm(range(alignment_ids.size(1))):
+        count_matrix[i] = torch.bincount(alignment_ids[:,i], minlength=tokenizer.vocab_size)
+    count_matrix = (count_matrix / count_matrix.sum(dim=1, keepdim=True)).to(device)
+    return count_matrix, int(aln_start)-1, int(aln_end)
 
 def tokenize_structure_sequence(structure_sequence):
     shift_structure_sequence = [i + 3 for i in structure_sequence]
@@ -29,7 +66,8 @@ def tokenize_structure_sequence(structure_sequence):
 
 
 @torch.no_grad()
-def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df):
+def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df, alpha=0.7,
+                  residu_alignment_file=None):
     sequence = read_seq(residue_fasta)
     structure_sequence = read_seq(structure_fasta)
 
@@ -46,17 +84,24 @@ def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df):
         labels=input_ids,
     )
 
-    logits = outputs.logits
-    logits = torch.log_softmax(logits[:, 1:-1, :], dim=-1)
+    logits = outputs.logits[0]
+    logits = torch.log_softmax(logits[1:-1, :], dim=-1)
+    
+    if residu_alignment_file is not None:
+        print(">>> Using residue sequence alignment matrix...")
+        alignment_matrix, aln_start, aln_end = count_matrix_from_alignment(tokenizer, residu_alignment_file)
+        aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * torch.log_softmax(alignment_matrix, dim=-1)
+        logits = torch.cat([logits[:aln_start], aln_modify_logits, logits[aln_end:]], dim=0)
 
     mutants = mutant_df["mutant"].tolist()
     scores = []
     vocab = tokenizer.get_vocab()
+    print(">>> Scoring mutants...")
     for mutant in tqdm(mutants):
         pred_score = 0
         for sub_mutant in mutant.split(":"):
             wt, idx, mt = sub_mutant[0], int(sub_mutant[1:-1]) - 1, sub_mutant[-1]
-            score = logits[0, idx, vocab[mt]] - logits[0, idx, vocab[wt]]
+            score = logits[idx, vocab[mt]] - logits[idx, vocab[wt]]
             pred_score += score.item()
         scores.append(pred_score)
 
@@ -82,7 +127,9 @@ def main():
     parser.add_argument("--mutant_dir", type=str, default=None, help="Directory containing CSV files with mutants",)
     
     # retrieval and logits mode
-    parser.add_argument("--retrieval_mode", type=str, default="seq+struc", choices=["seq", "struc", "seq+struc"], help="Mode to retrieve data",)
+    parser.add_argument("--retrieval_mode", type=str, default=None, choices=["seq", "struc", "seq+struc"], help="Mode to retrieve data",)
+    parser.add_argument("--alpha", type=float, default=0.5, help="Alpha value for combining logits",)
+    parser.add_argument("--residue_alignment_dir", type=str, default=None, help="Directory containing a2m files of residue alignments",)
     
     # output directory
     parser.add_argument("--out_scores_dir", default=None, help="Directory to save scores")
@@ -90,6 +137,7 @@ def main():
 
     print("Scoring proteins...")
     os.makedirs(args.out_scores_dir, exist_ok=True)
+    os.makedirs(f"{args.out_scores_dir}/scores", exist_ok=True)
     if args.base_dir:
         protein_names = read_names(f"{args.base_dir}/residue_sequence")
     if args.residue_dir:
@@ -98,7 +146,7 @@ def main():
     corrs = []
     print(protein_names)
     print(f">>> total proteins: {len(protein_names)}")
-    
+    print("=====================================")
     for model_idx, model_name in enumerate(args.model_name):
         print(f">>> Loading model {model_name}...")
         model = AutoModelForMaskedLM.from_pretrained(
@@ -114,14 +162,18 @@ def main():
                 residue_fasta = f"{args.base_dir}/residue_sequence/{protein_name}.fasta"
                 structure_fasta = f"{args.base_dir}/structure_sequence/{model_name.split('-')[-1]}/{protein_name}.fasta"
                 mutant_file = f"{args.base_dir}/substitutions/{protein_name}.csv"
+                if args.retrieval_mode == "seq":
+                    residu_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
+                else:
+                    residu_alignment_file = None
             if args.residue_dir:
                 residue_fasta = f"{args.residue_dir}/{protein_name}.fasta"
             if args.structure_dir:
                 structure_fasta = f"{args.structure_dir}/{protein_name}.fasta"
             if args.mutant_dir:
                 mutant_file = f"{args.mutant_dir}/{protein_name}.csv"
-            if os.path.exists(f"{args.out_scores_dir}/{protein_name}.csv"):
-                mutant_file = f"{args.out_scores_dir}/{protein_name}.csv"
+            if os.path.exists(f"{args.out_scores_dir}/scores/{protein_name}.csv"):
+                mutant_file = f"{args.out_scores_dir}/scores/{protein_name}.csv"
             mutant_df = pd.read_csv(mutant_file)
             
             if args.model_out_name:
@@ -136,6 +188,8 @@ def main():
                         residue_fasta=residue_fasta,
                         structure_fasta=structure_fasta,
                         mutant_df=mutant_df,
+                        alpha=args.alpha,
+                        residu_alignment_file=residu_alignment_file,
                     )
                 
                 mutant_df[model_out_name] = scores
@@ -143,9 +197,10 @@ def main():
             corr = spearmanr(mutant_df["DMS_score"], mutant_df[model_out_name]).correlation
             corrs.append(corr)
             print(f">>> {model_name} on {protein_name}: {corr}")
-                
-            mutant_df.to_csv(f"{args.out_scores_dir}/{protein_name}.csv", index=False)
+            print("=====================================")
+            mutant_df.to_csv(f"{args.out_scores_dir}/scores/{protein_name}.csv", index=False)
         print(f"====== {model_name} average correlation: {sum(corrs)/len(corrs)} ======")
+        pd.DataFrame({'protein': protein_names, model_out_name: corrs}).to_csv(f"{args.out_scores_dir}/correlation.csv", index=False)
 
 if __name__ == "__main__":
     main()

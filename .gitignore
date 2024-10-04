@@ -162,7 +162,10 @@ cython_debug/
 #.idea/
 
 data/proteingym_v1/residue_sequence
+data/proteingym_v1/residue_alignment
 data/proteingym_v1/structure_sequence
 data/proteingym_v1/substitutions
 data/proteingym_v1/sequence_alignments
+data/proteingym_v1/process.ipynb
+
 result/
