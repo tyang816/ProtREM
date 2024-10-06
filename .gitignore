@@ -169,5 +169,7 @@ data/proteingym_v1/structure_alignment
 data/proteingym_v1/substitutions
 data/proteingym_v1/sequence_alignments
 data/proteingym_v1/process.ipynb
+data/*.ipynb
 
+log/
 result/

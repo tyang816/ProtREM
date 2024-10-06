@@ -49,7 +49,7 @@ def read_multi_fasta(file_path):
             line = line.strip()
             if line.startswith('>'):
                 if current_sequence:
-                    sequences[header] = current_sequence.upper().replace('-', '<pad>')
+                    sequences[header] = current_sequence.upper().replace('-', '<pad>').replace('.', '<pad>')
                     current_sequence = ''
                 header = line
             else:
@@ -67,7 +67,8 @@ def count_matrix_from_residue_alignment(tokenizer, alignment_file):
     alignment_dict = read_multi_fasta(alignment_file)
     aln_start, aln_end = list(alignment_dict.keys())[0].split('/')[-1].split('-')
     alignment_seqs = list(alignment_dict.values())
-    print(f">>> Alignment start: {aln_start}, end: {aln_end}, start tokenizer")
+    print(f">>> Alignment start: {aln_start}, end: {aln_end}")
+    print(f">>> Start tokenize {len(alignment_seqs)} residue alignment sequences")
     tokenized_results = tokenizer(alignment_seqs, return_tensors="pt", padding=True)
     alignment_ids = tokenized_results["input_ids"][:,1:-1]
     # count distribution of each column, [seq_len, vocab_size]
@@ -81,7 +82,7 @@ def count_matrix_from_residue_alignment(tokenizer, alignment_file):
 def count_matrix_from_structure_alignment(tokenizer, alignment_file):
     alignment_dict = read_multi_fasta(alignment_file)
     alignment_seqs = list(alignment_dict.values())
-    print(">>> Start tokenizer")
+    print(f">>> Start tokenize {len(alignment_seqs)} structure alignment sequences")
     tokenized_results = tokenizer([alignment_seqs[0]], return_tensors="pt", padding=True)
     alignment_ids = tokenized_results["input_ids"][:,1:-1]
     # count distribution of each column, [seq_len, vocab_size]
@@ -220,14 +221,18 @@ if __name__ == "__main__":
                 residue_fasta = f"{args.base_dir}/residue_sequence/{protein_name}.fasta"
                 structure_fasta = f"{args.base_dir}/structure_sequence/{model_name.split('-')[-1]}/{protein_name}.fasta"
                 mutant_file = f"{args.base_dir}/substitutions/{protein_name}.csv"
-                if "aa_seq_aln" in args.logit_mode:
-                    residu_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
+                if args.logit_mode is not None:
+                    if "aa_seq_aln" in args.logit_mode:
+                        residu_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
+                    else:
+                        residu_alignment_file = None
+                    
+                    if "struc_seq_aln" in args.logit_mode:
+                        structure_alignment_file = f"{args.base_dir}/structure_alignment/{protein_name}.fasta"
+                    else:
+                        structure_alignment_file = None
                 else:
                     residu_alignment_file = None
-                
-                if "struc_seq_aln" in args.logit_mode:
-                    structure_alignment_file = f"{args.base_dir}/structure_alignment/{protein_name}.fasta"
-                else:
                     structure_alignment_file = None
                     
             if args.residue_dir:
@@ -245,27 +250,27 @@ if __name__ == "__main__":
             else:
                 model_out_name = model_name.split("/")[-1]
                 
-            # if model_out_name not in mutant_df.columns:
-            scores = score_protein(
-                    model=model,
-                    tokenizer=tokenizer,
-                    residue_fasta=residue_fasta,
-                    structure_fasta=structure_fasta,
-                    mutant_df=mutant_df,
-                    alpha=args.alpha,
-                    residu_alignment_file=residu_alignment_file,
-                    structure_alignment_file=structure_alignment_file,
-                )
-            
-            mutant_df[model_out_name] = scores
+            if model_out_name not in mutant_df.columns:
+                scores = score_protein(
+                        model=model,
+                        tokenizer=tokenizer,
+                        residue_fasta=residue_fasta,
+                        structure_fasta=structure_fasta,
+                        mutant_df=mutant_df,
+                        alpha=args.alpha,
+                        residu_alignment_file=residu_alignment_file,
+                        structure_alignment_file=structure_alignment_file,
+                    )
+                
+                mutant_df[model_out_name] = scores
             
             corr = spearmanr(mutant_df["DMS_score"], mutant_df[model_out_name]).correlation
             corrs.append(corr)
-            print(f">>> {model_name} on {protein_name}: {corr}")
+            print(f">>> {model_out_name} on {protein_name}: {corr}")
             print("=====================================")
             mutant_df.to_csv(f"{args.out_scores_dir}/scores/{protein_name}.csv", index=False)
         
-        print(f"====== {model_name} average correlation: {sum(corrs)/len(corrs)} ======")
+        print(f"====== {model_out_name} average correlation: {sum(corrs)/len(corrs)} ======")
         summary_df_path = f"{args.out_scores_dir}/correlation.csv"
         if os.path.exists(summary_df_path):
             summary_df = pd.read_csv(summary_df_path)
