@@ -109,7 +109,7 @@ if __name__ == '__main__':
         pdbs = sorted(os.listdir(args.pdb_dir))
         process_bar = tqdm(pdbs)
         for pdb in process_bar:
-            process_bar.set_description(pdb)
             process_pdb(f'{args.pdb_dir}/{pdb}', args.out_dir)
+            process_bar.set_description(pdb)
     elif args.pdb_file is not None:
         process_pdb(args.pdb_file, args.out_dir)

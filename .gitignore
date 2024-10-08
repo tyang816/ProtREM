@@ -161,6 +161,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+data/proteingym_v1/DMS_ProteinGym_substitutions_pdbs
 data/proteingym_v1/residue_sequence
 data/proteingym_v1/residue_alignment
 data/proteingym_v1/structure_sequence
