@@ -68,22 +68,27 @@ def count_matrix_from_residue_alignment(tokenizer, alignment_file):
     aln_start, aln_end = list(alignment_dict.keys())[0].split('/')[-1].split('-')
     alignment_seqs = list(alignment_dict.values())
     print(f">>> Alignment start: {aln_start}, end: {aln_end}")
-    print(f">>> Start tokenize {len(alignment_seqs)} residue alignment sequences")
+    print(f">>> Start tokenizing {len(alignment_seqs)} residue alignment sequences")
     tokenized_results = tokenizer(alignment_seqs, return_tensors="pt", padding=True)
     alignment_ids = tokenized_results["input_ids"][:,1:-1]
     # count distribution of each column, [seq_len, vocab_size]
     count_matrix = torch.zeros(alignment_ids.size(1), tokenizer.vocab_size)
     for i in tqdm(range(alignment_ids.size(1))):
         count_matrix[i] = torch.bincount(alignment_ids[:,i], minlength=tokenizer.vocab_size)
+    # calculate coverage of each column and normalize count matrix
+    # coverage = (1.0 - (count_matrix == tokenizer.pad_token_id).float().mean(dim=-1)).unsqueeze(-1).to(device)
     count_matrix = (count_matrix / count_matrix.sum(dim=1, keepdim=True)).to(device)
+    # count_matrix = count_matrix * coverage
     return count_matrix, int(aln_start)-1, int(aln_end)
 
 
 def count_matrix_from_structure_alignment(tokenizer, alignment_file):
     alignment_dict = read_multi_fasta(alignment_file)
     alignment_seqs = list(alignment_dict.values())
-    print(f">>> Start tokenize {len(alignment_seqs)} structure alignment sequences")
-    tokenized_results = tokenizer([alignment_seqs[0]], return_tensors="pt", padding=True)
+    print(f">>> Start tokenizing {len(alignment_seqs)} structure alignment sequences")
+    if len(alignment_seqs) == 0:
+        return None
+    tokenized_results = tokenizer(alignment_seqs, return_tensors="pt", padding=True)
     alignment_ids = tokenized_results["input_ids"][:,1:-1]
     # count distribution of each column, [seq_len, vocab_size]
     count_matrix = torch.zeros(alignment_ids.size(1), tokenizer.vocab_size)
@@ -110,17 +115,12 @@ def calculate_property_difference(wild_aa, mutant_aa, weights=None):
 def tokenize_structure_sequence(structure_sequence):
     shift_structure_sequence = [i + 3 for i in structure_sequence]
     shift_structure_sequence = [1, *shift_structure_sequence, 2]
-    return torch.tensor(
-        [
-            shift_structure_sequence,
-        ],
-        dtype=torch.long,
-    )
+    return torch.tensor([shift_structure_sequence,], dtype=torch.long)
 
 
 @torch.no_grad()
 def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df, alpha=0.7,
-                  residu_alignment_file=None, structure_alignment_file=None):
+                  residue_alignment_file=None, structure_alignment_file=None):
     sequence = read_seq(residue_fasta)
     structure_sequence = read_seq(structure_fasta)
 
@@ -140,16 +140,34 @@ def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df, a
     logits = outputs.logits[0]
     logits = torch.log_softmax(logits[1:-1, :], dim=-1)
     
-    if residu_alignment_file is not None:
+    
+    if residue_alignment_file is not None and structure_alignment_file is None:
         print(">>> Using residue sequence alignment matrix...")
-        alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, residu_alignment_file)
-        aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * torch.log_softmax(alignment_matrix, dim=-1)
+        alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, residue_alignment_file)
+        alignment_matrix = torch.log_softmax(alignment_matrix, dim=-1)
+        aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * alignment_matrix
         logits = torch.cat([logits[:aln_start], aln_modify_logits, logits[aln_end:]], dim=0)
 
-    if structure_alignment_file is not None:
+    if structure_alignment_file is not None and residue_alignment_file is None:
         print(">>> Using structure sequence alignment matrix...")
         alignment_matrix = count_matrix_from_structure_alignment(tokenizer, structure_alignment_file)
-        logits = (1-alpha) * logits + alpha * torch.log_softmax(alignment_matrix, dim=-1)
+        if alignment_matrix is not None:
+            alignment_matrix = torch.log_softmax(alignment_matrix, dim=-1)
+            logits = (1-alpha) * logits + alpha * alignment_matrix
+            
+    if residue_alignment_file is not None and structure_alignment_file is not None:
+        print(">>> Using both residue and structure sequence alignment matrix...")
+        plm_logits = logits.clone()
+        
+        residue_alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, residue_alignment_file)
+        residue_alignment_matrix = torch.log_softmax(residue_alignment_matrix, dim=-1)
+        aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * residue_alignment_matrix
+        logits = torch.cat([plm_logits[:aln_start], aln_modify_logits, plm_logits[aln_end:]], dim=0)
+        
+        structure_alignment_matrix = count_matrix_from_structure_alignment(tokenizer, structure_alignment_file)
+        if structure_alignment_matrix is not None:
+            structure_alignment_matrix = torch.log_softmax(structure_alignment_matrix, dim=-1)
+            logits = (1-alpha) * plm_logits + alpha * structure_alignment_matrix + logits
 
     mutants = mutant_df["mutant"].tolist()
     scores = []
@@ -185,9 +203,10 @@ if __name__ == "__main__":
     parser.add_argument("--mutant_dir", type=str, default=None, help="Directory containing CSV files with mutants",)
     
     # retrieval and logits mode
-    parser.add_argument("--logit_mode", type=str, default=None, choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln", "aa_seq_prop"], help="Mode to retrieve data",)
+    parser.add_argument("--logit_mode", type=str, default=None, choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln"], help="Mode to retrieve data",)
     parser.add_argument("--alpha", type=float, default=0.5, help="Alpha value for combining logits",)
     parser.add_argument("--residue_alignment_dir", type=str, default=None, help="Directory containing a2m files of residue alignments",)
+    parser.add_argument("--beta", type=float, default=0.5, help="Beta value for combining logits",)
     parser.add_argument("--structure_alignment_dir", type=str, default=None, help="Directory containing fasta files of foldseek structure alignments",)
     
     # output directory
@@ -223,16 +242,16 @@ if __name__ == "__main__":
                 mutant_file = f"{args.base_dir}/substitutions/{protein_name}.csv"
                 if args.logit_mode is not None:
                     if "aa_seq_aln" in args.logit_mode:
-                        residu_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
+                        residue_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
                     else:
-                        residu_alignment_file = None
+                        residue_alignment_file = None
                     
                     if "struc_seq_aln" in args.logit_mode:
                         structure_alignment_file = f"{args.base_dir}/structure_alignment/{protein_name}.fasta"
                     else:
                         structure_alignment_file = None
                 else:
-                    residu_alignment_file = None
+                    residue_alignment_file = None
                     structure_alignment_file = None
                     
             if args.residue_dir:
@@ -258,16 +277,15 @@ if __name__ == "__main__":
                         structure_fasta=structure_fasta,
                         mutant_df=mutant_df,
                         alpha=args.alpha,
-                        residu_alignment_file=residu_alignment_file,
+                        residue_alignment_file=residue_alignment_file,
                         structure_alignment_file=structure_alignment_file,
                     )
-                
                 mutant_df[model_out_name] = scores
-            
+        
             corr = spearmanr(mutant_df["DMS_score"], mutant_df[model_out_name]).correlation
             corrs.append(corr)
             print(f">>> {model_out_name} on {protein_name}: {corr}")
-            print("=====================================")
+            print("="*50)
             mutant_df.to_csv(f"{args.out_scores_dir}/scores/{protein_name}.csv", index=False)
         
         print(f"====== {model_out_name} average correlation: {sum(corrs)/len(corrs)} ======")
