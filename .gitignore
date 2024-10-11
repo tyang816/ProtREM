@@ -161,12 +161,14 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-data/proteingym_v1/DMS_ProteinGym_substitutions_pdbs
-data/proteingym_v1/residue_sequence
-data/proteingym_v1/residue_alignment
-data/proteingym_v1/structure_sequence
-data/proteingym_v1/structure_alignment_json
-data/proteingym_v1/structure_alignment
+data/proteingym_v1/pdbs
+data/proteingym_v1/aa_seq
+data/proteingym_v1/aa_seq_aln_a2m
+data/proteingym_v1/aa_seq_aln_a3m
+data/proteingym_v1/aa_seq_aln_a3m_raw
+data/proteingym_v1/struc_seq
+data/proteingym_v1/struc_seq_aln
+data/proteingym_v1/struc_seq_aln_json
 data/proteingym_v1/substitutions
 data/proteingym_v1/sequence_alignments
 data/proteingym_v1/process.ipynb

@@ -65,8 +65,11 @@ def read_seq(fasta):
 
 def count_matrix_from_residue_alignment(tokenizer, alignment_file):
     alignment_dict = read_multi_fasta(alignment_file)
-    aln_start, aln_end = list(alignment_dict.keys())[0].split('/')[-1].split('-')
     alignment_seqs = list(alignment_dict.values())
+    try:
+        aln_start, aln_end = list(alignment_dict.keys())[0].split('/')[-1].split('-')
+    except:
+        aln_start, aln_end = 1, len(alignment_seqs[0])
     print(f">>> Alignment start: {aln_start}, end: {aln_end}")
     print(f">>> Start tokenizing {len(alignment_seqs)} residue alignment sequences")
     tokenized_results = tokenizer(alignment_seqs, return_tensors="pt", padding=True)
@@ -120,7 +123,7 @@ def tokenize_structure_sequence(structure_sequence):
 
 @torch.no_grad()
 def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df, alpha=0.7,
-                  residue_alignment_file=None, structure_alignment_file=None):
+                  aa_aln_file=None, struc_aln_file=None):
     sequence = read_seq(residue_fasta)
     structure_sequence = read_seq(structure_fasta)
 
@@ -137,38 +140,39 @@ def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df, a
         labels=input_ids,
     )
 
+    # loss = outputs.loss.item()
     logits = outputs.logits[0]
     logits = torch.log_softmax(logits[1:-1, :], dim=-1)
     
     
-    if residue_alignment_file is not None and structure_alignment_file is None:
+    if aa_aln_file is not None and struc_aln_file is None:
         print(">>> Using residue sequence alignment matrix...")
-        alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, residue_alignment_file)
+        alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, aa_aln_file)
         alignment_matrix = torch.log_softmax(alignment_matrix, dim=-1)
         aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * alignment_matrix
         logits = torch.cat([logits[:aln_start], aln_modify_logits, logits[aln_end:]], dim=0)
 
-    if structure_alignment_file is not None and residue_alignment_file is None:
+    if struc_aln_file is not None and aa_aln_file is None:
         print(">>> Using structure sequence alignment matrix...")
-        alignment_matrix = count_matrix_from_structure_alignment(tokenizer, structure_alignment_file)
+        alignment_matrix = count_matrix_from_structure_alignment(tokenizer, struc_aln_file)
         if alignment_matrix is not None:
             alignment_matrix = torch.log_softmax(alignment_matrix, dim=-1)
             logits = (1-alpha) * logits + alpha * alignment_matrix
             
-    if residue_alignment_file is not None and structure_alignment_file is not None:
+    if aa_aln_file is not None and struc_aln_file is not None:
         print(">>> Using both residue and structure sequence alignment matrix...")
         plm_logits = logits.clone()
         
-        residue_alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, residue_alignment_file)
+        structure_alignment_matrix = count_matrix_from_structure_alignment(tokenizer, struc_aln_file)
+        if structure_alignment_matrix is not None:
+            structure_alignment_matrix = torch.log_softmax(structure_alignment_matrix, dim=-1)
+            logits = (1-alpha) * plm_logits + alpha * structure_alignment_matrix
+        
+        residue_alignment_matrix, aln_start, aln_end = count_matrix_from_residue_alignment(tokenizer, aa_aln_file)
         residue_alignment_matrix = torch.log_softmax(residue_alignment_matrix, dim=-1)
         aln_modify_logits = (1-alpha) * logits[aln_start: aln_end, :] + alpha * residue_alignment_matrix
         logits = torch.cat([plm_logits[:aln_start], aln_modify_logits, plm_logits[aln_end:]], dim=0)
         
-        structure_alignment_matrix = count_matrix_from_structure_alignment(tokenizer, structure_alignment_file)
-        if structure_alignment_matrix is not None:
-            structure_alignment_matrix = torch.log_softmax(structure_alignment_matrix, dim=-1)
-            logits = (1-alpha) * plm_logits + alpha * structure_alignment_matrix + logits
-
     mutants = mutant_df["mutant"].tolist()
     scores = []
     vocab = tokenizer.get_vocab()
@@ -198,16 +202,18 @@ if __name__ == "__main__":
     
     # data directories
     parser.add_argument("--base_dir", type=str, default=None, help="Base directory containing all data",)
-    parser.add_argument("--residue_dir", type=str, default=None, help="Directory containing FASTA files of residue sequences",)
-    parser.add_argument("--structure_dir", type=str, default=None, help="Directory containing FASTA files of structure sequences",)
+    parser.add_argument("--aa_seq_dir", type=str, default=None, help="Directory containing FASTA files of residue sequences",)
+    parser.add_argument("--struc_seq_dir", type=str, default=None, help="Directory containing FASTA files of structure sequences",)
     parser.add_argument("--mutant_dir", type=str, default=None, help="Directory containing CSV files with mutants",)
     
     # retrieval and logits mode
-    parser.add_argument("--logit_mode", type=str, default=None, choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln"], help="Mode to retrieve data",)
+    parser.add_argument("--logit_mode", type=str, default=None, choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln", "struc_seq_aln+aa_seq_aln"], help="Mode to retrieve data",)
     parser.add_argument("--alpha", type=float, default=0.5, help="Alpha value for combining logits",)
-    parser.add_argument("--residue_alignment_dir", type=str, default=None, help="Directory containing a2m files of residue alignments",)
-    parser.add_argument("--beta", type=float, default=0.5, help="Beta value for combining logits",)
-    parser.add_argument("--structure_alignment_dir", type=str, default=None, help="Directory containing fasta files of foldseek structure alignments",)
+    parser.add_argument("--sample_size", type=int, default=None, help="Number of samples to use",)
+    parser.add_argument("--sample_ratio", type=float, default=None, help="Ratio of samples to use",)
+    parser.add_argument("--sample_time", type=int, default=None, help="Number of times to sample",)
+    parser.add_argument("--aa_seq_aln_dir", type=str, default=None, help="Directory containing a2m files of residue alignments",)
+    parser.add_argument("--struc_seq_aln_dir", type=str, default=None, help="Directory containing fasta files of foldseek structure alignments",)
     
     # output directory
     parser.add_argument("--out_scores_dir", default=None, help="Directory to save scores")
@@ -217,14 +223,38 @@ if __name__ == "__main__":
     os.makedirs(args.out_scores_dir, exist_ok=True)
     os.makedirs(f"{args.out_scores_dir}/scores", exist_ok=True)
     if args.base_dir:
-        protein_names = read_names(f"{args.base_dir}/residue_sequence")
-    if args.residue_dir:
-        protein_names = read_names(args.residue_dir)
-    protein_names = sorted(protein_names)
+        if args.aa_seq_dir is None:
+            args.aa_seq_dir = f"{args.base_dir}/aa_seq"
+        else:
+            args.aa_seq_dir = f"{args.base_dir}/{args.aa_seq_dir}"
+            
+        if args.struc_seq_dir is None:
+            args.struc_seq_dir = f"{args.base_dir}/struc_seq"
+        else:
+            args.struc_seq_dir = f"{args.base_dir}/{args.struc_seq_dir}"
+        
+        if args.mutant_dir is None:
+            args.mutant_dir = f"{args.base_dir}/substitutions"
+        else:
+            args.mutant_dir = f"{args.base_dir}/{args.mutant_dir}"
+        
+        if args.aa_seq_aln_dir is None:
+            args.aa_seq_aln_dir = f"{args.base_dir}/aa_seq_aln"
+        else:
+            args.aa_seq_aln_dir = f"{args.base_dir}/{args.aa_seq_aln_dir}"
+            
+        if args.struc_seq_aln_dir is None:
+            args.struc_seq_aln_dir = f"{args.base_dir}/struc_seq_aln"
+        else:
+            args.struc_seq_aln_dir = f"{args.base_dir}/{args.struc_seq_aln_dir}"
+            
+            
+    protein_names = sorted(read_names(args.aa_seq_dir))
     corrs = []
     print(protein_names)
     print(f">>> total proteins: {len(protein_names)}")
     print("=====================================")
+    
     for model_idx, model_name in enumerate(args.model_name):
         print(f">>> Loading model {model_name}...")
         model = AutoModelForMaskedLM.from_pretrained(
@@ -236,30 +266,26 @@ if __name__ == "__main__":
         for idx, protein_name in enumerate(protein_names):
             print(f">>> Scoring {protein_name}, current {idx+1}/{len(protein_names)}...")
             # load data
-            if args.base_dir:
-                residue_fasta = f"{args.base_dir}/residue_sequence/{protein_name}.fasta"
-                structure_fasta = f"{args.base_dir}/structure_sequence/{model_name.split('-')[-1]}/{protein_name}.fasta"
-                mutant_file = f"{args.base_dir}/substitutions/{protein_name}.csv"
-                if args.logit_mode is not None:
-                    if "aa_seq_aln" in args.logit_mode:
-                        residue_alignment_file = f"{args.base_dir}/residue_alignment/{protein_name}.a2m"
-                    else:
-                        residue_alignment_file = None
-                    
-                    if "struc_seq_aln" in args.logit_mode:
-                        structure_alignment_file = f"{args.base_dir}/structure_alignment/{protein_name}.fasta"
-                    else:
-                        structure_alignment_file = None
+            residue_fasta = f"{args.aa_seq_dir}/{protein_name}.fasta"
+            structure_fasta = f"{args.struc_seq_dir}/{model_name.split('-')[-1]}/{protein_name}.fasta"
+            mutant_file = f"{args.mutant_dir}/{protein_name}.csv"
+            if args.logit_mode is not None:
+                if "aa_seq_aln" in args.logit_mode:
+                    if os.path.exists(f"{args.aa_seq_aln_dir}/{protein_name}.a2m"):
+                        aa_aln_file = f"{args.aa_seq_aln_dir}/{protein_name}.a2m"
+                    elif os.path.exists(f"{args.aa_seq_aln_dir}/{protein_name}.a3m"):
+                        aa_aln_file = f"{args.aa_seq_aln_dir}/{protein_name}.a3m"
                 else:
-                    residue_alignment_file = None
-                    structure_alignment_file = None
+                    aa_aln_file = None
+                
+                if "struc_seq_aln" in args.logit_mode:
+                    struc_aln_file = f"{args.struc_seq_aln_dir}/{protein_name}.fasta"
+                else:
+                    struc_aln_file = None
+            else:
+                aa_aln_file = None
+                struc_aln_file = None
                     
-            if args.residue_dir:
-                residue_fasta = f"{args.residue_dir}/{protein_name}.fasta"
-            if args.structure_dir:
-                structure_fasta = f"{args.structure_dir}/{protein_name}.fasta"
-            if args.mutant_dir:
-                mutant_file = f"{args.mutant_dir}/{protein_name}.csv"
             if os.path.exists(f"{args.out_scores_dir}/scores/{protein_name}.csv"):
                 mutant_file = f"{args.out_scores_dir}/scores/{protein_name}.csv"
             mutant_df = pd.read_csv(mutant_file)
@@ -269,18 +295,18 @@ if __name__ == "__main__":
             else:
                 model_out_name = model_name.split("/")[-1]
                 
-            if model_out_name not in mutant_df.columns:
-                scores = score_protein(
-                        model=model,
-                        tokenizer=tokenizer,
-                        residue_fasta=residue_fasta,
-                        structure_fasta=structure_fasta,
-                        mutant_df=mutant_df,
-                        alpha=args.alpha,
-                        residue_alignment_file=residue_alignment_file,
-                        structure_alignment_file=structure_alignment_file,
-                    )
-                mutant_df[model_out_name] = scores
+            # if model_out_name not in mutant_df.columns:
+            scores = score_protein(
+                    model=model,
+                    tokenizer=tokenizer,
+                    residue_fasta=residue_fasta,
+                    structure_fasta=structure_fasta,
+                    mutant_df=mutant_df,
+                    alpha=args.alpha,
+                    aa_aln_file=aa_aln_file,
+                    struc_aln_file=struc_aln_file,
+                )
+            mutant_df[model_out_name] = scores
         
             corr = spearmanr(mutant_df["DMS_score"], mutant_df[model_out_name]).correlation
             corrs.append(corr)

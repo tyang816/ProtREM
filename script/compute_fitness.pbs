@@ -1,7 +1,7 @@
 #PBS -q ai
 #PBS -l walltime=168:00:00
 #PBS -l select=1:ncpus=6:ngpus=1:mem=100gb
-#PBS -N struc_aln_0.1
+#PBS -N seq_aln_0.7
 #PBS -o /home/tanyang/workspace/ProSST-R/log
 #PBS -e /home/tanyang/workspace/ProSST-R/log
 
@@ -10,11 +10,11 @@ cd /home/tanyang/workspace/ProSST-R
 
 
 export HF_ENDPOINT=https://hf-mirror.com
-alpha=0.1
+alpha=0.7
 CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
     --model_name AI4Protein/ProSST-2048 \
-    --logit_mode struc_seq_aln \
+    --logit_mode aa_seq_aln \
     --alpha $alpha \
-    --model_out_name ProSST-2048-struc_aln"$alpha" \
+    --model_out_name ProSST-2048-seq_aln"$alpha" \
     --base_dir data/proteingym_v1 \
     --out_scores_dir result/proteingym_v1
