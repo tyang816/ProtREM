@@ -22,7 +22,7 @@ do
 done
 
 export HF_ENDPOINT=https://hf-mirror.com
-alpha=0.2
+alpha=0.6
 CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
     --model_name AI4Protein/ProSST-2048 \
     --logit_mode aa_seq_aln \
@@ -47,7 +47,7 @@ do
 done
 
 export HF_ENDPOINT=https://hf-mirror.com
-alpha=0.8
+alpha=0.9
 CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
     --model_name AI4Protein/ProSST-2048 \
     --logit_mode struc_seq_aln \
@@ -82,7 +82,7 @@ done
 
 # zero-shot with resample
 export HF_ENDPOINT=https://hf-mirror.com
-alpha=0.8
+# alpha=0.8
 for alpha in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9
 do
     CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
@@ -90,8 +90,8 @@ do
         --logit_mode aa_seq_aln \
         --alpha $alpha \
         --sample_ratio 0.5 \
-        --sample_times 5 \
-        --model_out_name ProSST-2048-seq_aln"$alpha"-sample5_r0.5 \
+        --sample_times 1 \
+        --model_out_name ProSST-2048-seq_aln"$alpha"-sample1_r0.5 \
         --base_dir data/proteingym_v1 \
         --out_scores_dir result/proteingym_v1
 done

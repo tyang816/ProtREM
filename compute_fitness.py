@@ -175,10 +175,13 @@ def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df,
         print(">>> Using structure sequence alignment matrix...")
         alignment_dict = read_multi_fasta(struc_seq_aln_file)
         alignment_matrix = count_matrix_from_structure_alignment(tokenizer, alignment_dict)
-        alignment_matrix = (alignment_matrix / alignment_matrix.sum(dim=1, keepdim=True)).to(device)
         if alignment_matrix is not None:
-            alignment_matrix = torch.log_softmax(alignment_matrix, dim=-1)
-            logits = (1-alpha) * logits + alpha * alignment_matrix
+            count_matrix = torch.zeros(alignment_matrix.size(1), tokenizer.vocab_size)
+            for i in tqdm(range(alignment_matrix.size(1))):
+                count_matrix[i] = torch.bincount(alignment_matrix[:,i], minlength=tokenizer.vocab_size)
+            count_matrix = (count_matrix / count_matrix.sum(dim=1, keepdim=True)).to(device)
+            count_matrix = torch.log_softmax(count_matrix, dim=-1)
+            logits = (1-alpha) * logits + alpha * count_matrix
             
     if aa_seq_aln_file is not None and struc_seq_aln_file is not None:
         print(">>> Using both residue and structure sequence alignment matrix...")
