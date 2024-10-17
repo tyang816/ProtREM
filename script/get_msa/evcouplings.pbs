@@ -1,7 +1,7 @@
 #PBS -q huge
 #PBS -l select=1:ncpus=8:mem=100gb
 #PBS -l walltime=168:00:00
-#PBS -N BFP
+#PBS -N VHH_tm
 #PBS -o /home/tanyang/workspace/ProSST-R/log
 #PBS -e /home/tanyang/workspace/ProSST-R/log
 
@@ -9,7 +9,7 @@
 cd /home/tanyang/workspace/ProSST-R
 source /home/tanyang/miniconda3/bin/activate /home/tanyang/miniconda3/envs/protssn
 
-protein=BFP
+protein=VHH_tm
 database=/home/tanyang/uniref100.fasta
 evcouplings \
     -P output/$protein/$protein \
@@ -17,4 +17,5 @@ evcouplings \
     -s data/case/aa_seq/$protein.fasta \
     -d $database \
     -b "0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9" \
-    -n 5 src/single_config_monomer.txt
+    -n 5 \
+    src/single_config_monomer.txt
