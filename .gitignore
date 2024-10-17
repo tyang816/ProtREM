@@ -175,7 +175,10 @@ data/proteingym_v1/process.ipynb
 data/proteingym_v1/DMS_ProteinGym_substitutions_pdbs
 data/proteingym_v1/*.json
 data/*.ipynb
+data/case
 
+jackhmmer_results
 
 log/
 result/
+output/

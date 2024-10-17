@@ -1,7 +1,9 @@
 import os
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import argparse
 from tqdm import tqdm
-from src.structure.quantizer import PdbQuantizer
+from structure.quantizer import PdbQuantizer
 
 
 if __name__ == '__main__':
@@ -18,11 +20,12 @@ if __name__ == '__main__':
     
     if args.pdb_dir is not None:
         pdb_files = os.listdir(args.pdb_dir)
-        for pdb_file in pdb_files:
+        for pdb_file in tqdm(pdb_files):
             pdb_name = pdb_file.split(".")[0]
             for v in vocab_size:
                 processor = PdbQuantizer(structure_vocab_size=v)
                 result = processor(os.path.join(args.pdb_dir, pdb_file), return_residue_seq=False)
+                result = [str(i) for i in result]
                 with open(os.path.join(args.out_dir, str(v), pdb_name+'.fasta'), "w") as f:
                     f.write(f'>{pdb_name}\n')
                     f.write(','.join(result))
@@ -32,6 +35,7 @@ if __name__ == '__main__':
         for v in vocab_size:
             processor = PdbQuantizer(structure_vocab_size=v)
             result = processor(args.pdb_file, return_residue_seq=False)
+            result = [str(i) for i in result]
             with open(os.path.join(args.out_dir, str(v), pdb_name+'.fasta'), "w") as f:
                 f.write(f'>{pdb_name}\n')
                 f.write(','.join(result))
