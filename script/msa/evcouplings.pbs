@@ -2,17 +2,17 @@
 #PBS -l select=1:ncpus=8:mem=100gb
 #PBS -l walltime=168:00:00
 #PBS -N VHH_tm
-#PBS -o /home/tanyang/workspace/ProSST-R/log
-#PBS -e /home/tanyang/workspace/ProSST-R/log
+#PBS -o /home/tanyang/workspace/ProtREM/log
+#PBS -e /home/tanyang/workspace/ProtREM/log
 
 
-cd /home/tanyang/workspace/ProSST-R
+cd /home/tanyang/workspace/ProtREM
 source /home/tanyang/miniconda3/bin/activate /home/tanyang/miniconda3/envs/protssn
 
 # protein=VHH_tm
 # database=/home/tanyang/uniref100.fasta
 evcouplings \
-    -P output_MEER/proteingym_v1/$protein/$protein \
+    -P output/proteingym_v1/$protein/$protein \
     -p $protein \
     -s data/proteingym_v1/aa_seq/$protein.fasta \
     -d $database \

@@ -2,8 +2,8 @@
 #PBS -l select=1:ncpus=8:mem=100gb
 #PBS -l walltime=168:00:00
 #PBS -N msa
-#PBS -o /home/tanyang/workspace/ProSST-R/log
-#PBS -e /home/tanyang/workspace/ProSST-R/log
+#PBS -o /home/tanyang/workspace/ProtREM/log
+#PBS -e /home/tanyang/workspace/ProtREM/log
 
 
 # database=/home/tanyang/data/0dataset/MEER/MEER_0.5.fasta

@@ -311,6 +311,8 @@ if __name__ == "__main__":
                         aa_seq_aln_file = f"{args.aa_seq_aln_dir}/{protein_name}.a2m"
                     elif os.path.exists(f"{args.aa_seq_aln_dir}/{protein_name}.a3m"):
                         aa_seq_aln_file = f"{args.aa_seq_aln_dir}/{protein_name}.a3m"
+                    elif os.path.exists(f"{args.aa_seq_aln_dir}/{protein_name}.fasta"):
+                        aa_seq_aln_file = f"{args.aa_seq_aln_dir}/{protein_name}.fasta"
                 else:
                     aa_seq_aln_file = None
                 
@@ -354,10 +356,10 @@ if __name__ == "__main__":
             mutant_df.to_csv(f"{args.out_scores_dir}/scores/{protein_name}.csv", index=False)
         
         print(f"====== {model_out_name} average correlation: {sum(corrs)/len(corrs)} ======")
-        summary_df_path = f"{args.out_scores_dir}/correlation.csv"
+        summary_df_path = f"{args.out_scores_dir}/summary_correlation.csv"
         if os.path.exists(summary_df_path):
             summary_df = pd.read_csv(summary_df_path)
             summary_df[model_out_name] = corrs
         else:
             summary_df = pd.DataFrame({'protein': protein_names, model_out_name: corrs})
-        summary_df.to_csv(f"{args.out_scores_dir}/correlation.csv", index=False)
+        summary_df.to_csv(f"{args.out_scores_dir}/summary_correlation.csv", index=False)

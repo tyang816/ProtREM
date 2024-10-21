@@ -13,7 +13,7 @@ for p in data/proteingym_v1/aa_seq/*.fasta
 do
     p=$(basename $p .fasta)
     echo $p
-    qsub -v protein=$p,database=$d -N $p script/get_msa/evcouplings.pbs
+    qsub -v protein=$p,database=$d -N $p script/msa/evcouplings.pbs
 done
 
 
@@ -21,6 +21,19 @@ d=/home/tanyang/uniref100.fasta
 for p in data/proteingym_v1/aa_seq/*.fasta
 do
     p=$(basename $p .fasta)
-    echo $p
-    qsub -v protein=$p,database=$d -N $p script/get_msa/evcouplings.pbs
+    if [ -d output/proteingym_v1/$p/ ]; then
+        # 
+        if [ $(ls output/proteingym_v1/$p/ | grep -c ".failed") -eq 9 ]; then
+            rm -rf output/proteingym_v1/$p/
+            echo '>>> remove' $p
+        # else sikp this protein
+        else
+            echo '>>> skip' $p
+            continue
+        fi
+    fi
+
+    echo '>>> submit ' $p
+    qsub -v protein=$p,database=$d -N $p script/msa/evcouplings.pbs
+    echo '============== done' $p ' =============='
 done

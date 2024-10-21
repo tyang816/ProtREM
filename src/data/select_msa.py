@@ -15,11 +15,19 @@ if __name__ == '__main__':
     os.makedirs(args.output_dir + '/aa_seq_aln_a2m', exist_ok=True)
     
     if args.is_multi:
+        failed_jobs = []
         protein_names = os.listdir(args.input_dir)
         for protein_name in tqdm(protein_names):
             job_summary = pd.read_csv(f'{args.input_dir}/{protein_name}/{protein_name}_job_statistics_summary.csv')
             if len(job_summary) != 9:
                 print(f'>>> No enough MSA for {protein_name}')
+                files = os.listdir(f'{args.input_dir}/{protein_name}')
+                failed_files = [f for f in files if f.endswith('failed')]
+                if len(failed_files) + len(job_summary) != 9:
+                    print(f'>>> Not all jobs are finished for {protein_name}, skippping...')
+                    failed_jobs.append(protein_name)
+                    continue
+            
             # select the `prefix` according to the max `num_significant`
             prefix = job_summary.loc[job_summary['num_significant'].idxmax()]['prefix']
             prefix_name = prefix.split('/')[-1]

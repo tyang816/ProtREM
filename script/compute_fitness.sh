@@ -1,10 +1,11 @@
 # defalut setting
 export HF_ENDPOINT=https://hf-mirror.com
+protein_dir=case
 CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
     --model_name AI4Protein/ProSST-2048 \
     --model_out_name ProSST-2048 \
-    --base_dir data/proteingym_v1 \
-    --out_scores_dir result/proteingym_v1
+    --base_dir data/$protein_dir \
+    --out_scores_dir result/$protein_dir
 
 
 # zero-shot with aa sequence alignment
@@ -22,15 +23,16 @@ do
 done
 
 export HF_ENDPOINT=https://hf-mirror.com
-alpha=0.6
+alpha=0.8
+protein_dir=case
 CUDA_VISIBLE_DEVICES=0 python compute_fitness.py \
     --model_name AI4Protein/ProSST-2048 \
     --logit_mode aa_seq_aln \
     --alpha $alpha \
-    --model_out_name ProSST-2048-seq_aln"$alpha"-a3m \
-    --base_dir data/proteingym_v1 \
-    --aa_seq_aln_dir aa_seq_aln_a3m \
-    --out_scores_dir result/proteingym_v1
+    --model_out_name ProSST-2048-seq_aln"$alpha"_raw \
+    --base_dir data/$protein_dir \
+    --aa_seq_aln_dir aa_seq_aln_a2m_raw \
+    --out_scores_dir result/$protein_dir
 
 
 # zero-shot with structure sequence alignment
