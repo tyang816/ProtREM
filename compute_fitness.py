@@ -217,6 +217,7 @@ def score_protein(model, tokenizer, residue_fasta, structure_fasta, mutant_df,
         pred_score = 0
         for sub_mutant in mutant.split(":"):
             wt, idx, mt = sub_mutant[0], int(sub_mutant[1:-1]) - 1, sub_mutant[-1]
+            assert sequence[idx] == wt, f"Wild type mismatch: {sequence[idx]} != {wt}, idx {idx}"
             score = logits[idx, vocab[mt]] - logits[idx, vocab[wt]]
             pred_score += score.item()
         scores.append(pred_score)
