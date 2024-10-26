@@ -379,7 +379,7 @@ environment:
     engine: local
     queue: medium
     cores: 8
-    memory: 15000
+    memory: 200000
     time: 2-0:0:0
 
     # Special setting for "local" engine to define number of workers running in parallel
