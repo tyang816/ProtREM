@@ -1,10 +1,14 @@
-# ProtREM
+# Retrieval-Enhanced Mutation Mastery: Augmenting Zero-Shot Prediction of Protein Language Model
 
-## 🚀 Introduction
+## 🚀 Introduction (ProtREM)
 
-We use the UniRef100 database downloaded on October 2024.
+<img src="img/framework.png" alt="framework">
 
 ## 📑 Results
+
+<img src="img/tab1.png" alt="tab1">
+
+<img src="img/tabs5.png" alt="tabs5">
 
 ### News
 
@@ -20,8 +24,9 @@ Please make sure you have installed **[Anaconda3](https://www.anaconda.com/downl
 conda env create -f environment.yaml
 conda activate protrem
 
-# We need HMMER for MSA
+# We need HMMER and EVCouplings for MSA
 # conda install -c biocore hmmer
+# pip install https://github.com/debbiemarkslab/EVcouplings/archive/develop.zip
 ```
 
 ### Other Requirement
