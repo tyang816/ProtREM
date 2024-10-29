@@ -151,7 +151,7 @@ python compute_fitness.py \
 Please cite our work if you have used our code or data.
 
 ```
-@article{li2024immunogenicity,
+@article{tan2024protrem,
   title={Retrieval-Enhanced Mutation Mastery: Augmenting Zero-Shot Prediction of Protein Language Model},
   author={Tan, Yang and Wang, Ruilin and Wu, Banghao and Hong, Liang and Zhou, Bingxin},
   journal={arXiv:2410.21127},
