@@ -235,7 +235,7 @@ def read_names(fasta_dir):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--model_name", type=str, default="AI4Protein/ProSST-2048", nargs="+", required=True)
-    parser.add_argument("--model_out_name", type=str, default="ProSST-2048", nargs="+", help="Output model name",)
+    parser.add_argument("--model_out_name", type=str, default="ProtREM", nargs="+", help="Output model name",)
     
     # data directories
     parser.add_argument("--base_dir", type=str, default=None, help="Base directory containing all data",)
@@ -244,8 +244,8 @@ if __name__ == "__main__":
     parser.add_argument("--mutant_dir", type=str, default=None, help="Directory containing CSV files with mutants",)
     
     # retrieval and logits mode
-    parser.add_argument("--logit_mode", type=str, default=None, choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln", "struc_seq_aln+aa_seq_aln"], help="Mode to retrieve data",)
-    parser.add_argument("--alpha", type=float, default=0.5, help="Alpha value for combining logits",)
+    parser.add_argument("--logit_mode", type=str, default="aa_seq_aln", choices=["aa_seq_aln", "struc_seq_aln", "aa_seq_aln+struc_seq_aln", "struc_seq_aln+aa_seq_aln"], help="Mode to retrieve data",)
+    parser.add_argument("--alpha", type=float, default=0.8, help="Alpha value for combining logits",)
     parser.add_argument("--sample_size", type=int, default=None, help="Number of samples to use",)
     parser.add_argument("--sample_ratio", type=float, default=1.0, help="Ratio of samples to use",)
     parser.add_argument("--sample_times", type=int, default=1, help="Number of times to sample",)
@@ -281,7 +281,7 @@ if __name__ == "__main__":
             args.aa_seq_aln_dir = f"{args.base_dir}/{args.aa_seq_aln_dir}"
             
         if args.struc_seq_aln_dir is None:
-            args.struc_seq_aln_dir = f"{args.base_dir}/struc_seq_aln"
+            args.struc_seq_aln_dir = f"{args.base_dir}/struc_seq_aln_foldseek"
         else:
             args.struc_seq_aln_dir = f"{args.base_dir}/{args.struc_seq_aln_dir}"
             
