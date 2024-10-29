@@ -146,11 +146,15 @@ python compute_fitness.py \
     --out_scores_dir result/$protein_dir
 ```
 
-
 ## 🙌 Citation
 
 Please cite our work if you have used our code or data.
 
 ```
-
+@article{li2024immunogenicity,
+  title={Retrieval-Enhanced Mutation Mastery: Augmenting Zero-Shot Prediction of Protein Language Model},
+  author={Tan, Yang and Wang, Ruilin and Wu, Banghao and Hong, Liang and Zhou, Bingxin},
+  journal={arXiv preprint arXiv:2410.21127},
+  year={2024}
+}
 ```
