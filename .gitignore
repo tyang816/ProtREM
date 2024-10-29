@@ -167,8 +167,8 @@ data/proteingym_v1/aa_seq_aln_a2m
 data/proteingym_v1/aa_seq_aln_a3m
 data/proteingym_v1/aa_seq_aln_a3m_raw
 data/proteingym_v1/struc_seq
-data/proteingym_v1/struc_seq_aln
-data/proteingym_v1/struc_seq_aln_json
+data/proteingym_v1/struc_seq_aln_foldseek
+data/proteingym_v1/struc_seq_aln_foldseek_json
 data/proteingym_v1/substitutions
 data/proteingym_v1/sequence_alignments
 data/proteingym_v1/process.ipynb
@@ -177,8 +177,12 @@ data/proteingym_v1/*.json
 data/*.ipynb
 data/case
 
+data/proteingym_v1/aa_seq_aln_a2m.tar.gz
+data/proteingym_v1/aa_seq_aln_a3m.tar.gz
+
 jackhmmer_results
 
+script_dev/
 log/
 result/
 output/
