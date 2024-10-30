@@ -234,8 +234,8 @@ def read_names(fasta_dir):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--model_name", type=str, default="AI4Protein/ProSST-2048", nargs="+", required=True)
-    parser.add_argument("--model_out_name", type=str, default="ProtREM", nargs="+", help="Output model name",)
+    parser.add_argument("--model_name", type=str, default=["AI4Protein/ProSST-2048"], nargs="+", help="Model name",)
+    parser.add_argument("--model_out_name", type=str, default=["ProtREM"], nargs="+", help="Output model name",)
     
     # data directories
     parser.add_argument("--base_dir", type=str, default=None, help="Base directory containing all data",)
@@ -356,11 +356,11 @@ if __name__ == "__main__":
             print("="*50)
             mutant_df.to_csv(f"{args.out_scores_dir}/scores/{protein_name}.csv", index=False)
         
-        print(f"====== {model_out_name} average correlation: {sum(corrs)/len(corrs)} ======")
-        summary_df_path = f"{args.out_scores_dir}/summary_correlation.csv"
+        print(f"====== {model_out_name} average correlation performance: {sum(corrs)/len(corrs)} ======")
+        summary_df_path = f"{args.out_scores_dir}/summary_performance.csv"
         if os.path.exists(summary_df_path):
             summary_df = pd.read_csv(summary_df_path)
             summary_df[model_out_name] = corrs
         else:
             summary_df = pd.DataFrame({'protein': protein_names, model_out_name: corrs})
-        summary_df.to_csv(f"{args.out_scores_dir}/summary_correlation.csv", index=False)
+        summary_df.to_csv(f"{args.out_scores_dir}/summary_performance.csv", index=False)
