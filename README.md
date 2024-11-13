@@ -27,11 +27,11 @@
 Please make sure you have installed **[Anaconda3](https://www.anaconda.com/download)** or **[Miniconda3](https://docs.conda.io/projects/miniconda/en/latest/)**.
 
 ```
-conda env create -f environment.yaml
+conda env create -f environment.yml
 conda activate protrem
 
 # We need HMMER and EVCouplings for MSA
-# conda install -c biocore hmmer
+# pip install hmmer
 # pip install https://github.com/debbiemarkslab/EVcouplings/archive/develop.zip
 ```
 
