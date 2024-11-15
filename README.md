@@ -37,7 +37,7 @@ conda activate protrem
 
 ### Other Requirement
 
-Install plmc
+Install plmc and change the path in `src/single_config_monomer.txt`
 ```shell
 git clone https://github.com/debbiemarkslab/plmc.git
 cd plmc
@@ -107,7 +107,7 @@ protein_dir=<your_protein_dir_name>
 # your protein path, eg. data/fluorescent_protein/aa_seq/GFP.fasta
 query_protein_name=<your_protein_name>
 protein_path=data/$protein_dir/aa_seq/$query_protein_name.fasta
-# your unipror dataset path
+# your uniprot dataset path
 database=<your_path>/uniref100.fasta
 evcouplings \
     -P output/$protein_dir/$query_protein_name \
