@@ -12,19 +12,19 @@ if __name__ == '__main__':
     parser.add_argument("--pdb_file", type=str, default=None, help="PDB file",)
     parser.add_argument("--vocab_size", type=int, default=[2048], nargs='+', help="Vocabulary size",)
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files",)
-    parser.add_argument("--out_dir", type=str, default=None, help="Output directory",)
+    parser.add_argument("--output_dir", type=str, default=None, help="Output directory",)
     args = parser.parse_args()
     
-    os.makedirs(args.out_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     for v in args.vocab_size:
-        os.makedirs(os.path.join(args.out_dir, str(v)), exist_ok=True)
+        os.makedirs(os.path.join(args.output_dir, str(v)), exist_ok=True)
     
     if args.pdb_dir is not None:
         pdb_files = os.listdir(args.pdb_dir)
         for pdb_file in tqdm(pdb_files):
             pdb_name = pdb_file[:-4]
             for v in args.vocab_size:
-                out_file = os.path.join(args.out_dir, str(v), pdb_name+'.fasta')
+                out_file = os.path.join(args.output_dir, str(v), pdb_name+'.fasta')
                 if os.path.exists(out_file) and not args.overwrite:
                     continue
                 processor = PdbQuantizer(structure_vocab_size=v)
@@ -40,6 +40,6 @@ if __name__ == '__main__':
             processor = PdbQuantizer(structure_vocab_size=v)
             result = processor(args.pdb_file, return_residue_seq=False)
             result = [str(i) for i in result]
-            with open(os.path.join(args.out_dir, str(v), pdb_name+'.fasta'), "w") as f:
+            with open(os.path.join(args.output_dir, str(v), pdb_name+'.fasta'), "w") as f:
                 f.write(f'>{pdb_name}\n')
                 f.write(','.join(result))

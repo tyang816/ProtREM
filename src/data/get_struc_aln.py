@@ -6,10 +6,10 @@ from tqdm import tqdm
 from requests import get
 from time import sleep
 
-def process_pdb(pdb_file, out_dir):
+def process_pdb(pdb_file, output_dir):
     file_name = pdb_file.split('.')[0].split('/')[-1]
     
-    if os.path.exists(f'{out_dir}/{file_name}.fasta'):
+    if os.path.exists(f'{output_dir}/{file_name}.fasta'):
         print(f'>>> {file_name} already exists')
         return None
     
@@ -83,12 +83,12 @@ def process_pdb(pdb_file, out_dir):
     
     if alignment_dict == {}:
         print(f'>>> {file_name} has no alignment')
-        with open(f'{out_dir}/{file_name}.fasta', 'w') as f:
+        with open(f'{output_dir}/{file_name}.fasta', 'w') as f:
             f.write('\n')
         return None
     
     seqs = []
-    with open(f'{out_dir}/{file_name}.fasta', 'w') as f:
+    with open(f'{output_dir}/{file_name}.fasta', 'w') as f:
         for key, value in alignment_dict.items():
             if value not in seqs:
                 seqs.append(value)
@@ -101,15 +101,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--pdb_dir', type=str)
     parser.add_argument('--pdb_file', type=str)
-    parser.add_argument('--out_dir', type=str, required=True)
+    parser.add_argument('--output_dir', type=str, required=True)
     args = parser.parse_args()
     
-    os.makedirs(args.out_dir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     if args.pdb_dir is not None:
         pdbs = sorted(os.listdir(args.pdb_dir))
         process_bar = tqdm(pdbs)
         for pdb in process_bar:
-            process_pdb(f'{args.pdb_dir}/{pdb}', args.out_dir)
+            process_pdb(f'{args.pdb_dir}/{pdb}', args.output_dir)
             process_bar.set_description(pdb)
     elif args.pdb_file is not None:
-        process_pdb(args.pdb_file, args.out_dir)
+        process_pdb(args.pdb_file, args.output_dir)

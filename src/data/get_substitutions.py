@@ -8,7 +8,7 @@ from utils import load_coords
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='make single mutant csv')
     parser.add_argument("--fasta_dir", type=str, default=None, required=True)
-    parser.add_argument("--out_dir", type=str, default=None)
+    parser.add_argument("--output_dir", type=str, default=None)
     parser.add_argument("--pdb_file", type=str, default=None)
     parser.add_argument("--out_file", type=str, default=None)
     parser.add_argument("--start", type=int, default=-1)
@@ -37,11 +37,11 @@ if __name__ == "__main__":
                         continue
                     data["mutant"].append(f"{s}{idx+1}{a}")
                     data["DMS_score"].append(0)
-            pd.DataFrame(data).to_csv(f"{args.out_dir}/{protein_name}.csv", index=False)
+            pd.DataFrame(data).to_csv(f"{args.output_dir}/{protein_name}.csv", index=False)
     
     if args.pdb_file is not None:
-        out_dir = os.path.dirname(args.out_file)
-        os.makedirs(out_dir, exist_ok=True)
+        output_dir = os.path.dirname(args.out_file)
+        os.makedirs(output_dir, exist_ok=True)
         _, seq = load_coords(args.pdb_file, "A")
         data = {"mutant":[], "DMS_score":[]}
         for idx, s in tqdm(enumerate(seq)):
