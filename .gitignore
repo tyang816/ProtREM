@@ -176,6 +176,7 @@ data/proteingym_v1/DMS_ProteinGym_substitutions_pdbs
 data/proteingym_v1/*.json
 data/*.ipynb
 data/case
+data/my_proteins
 
 data/proteingym_v1/aa_seq_aln_a2m.tar.gz
 data/proteingym_v1/aa_seq_aln_a3m.tar.gz
