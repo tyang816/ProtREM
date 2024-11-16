@@ -8,7 +8,7 @@
 
 ### News
 
-- [2024.xx.xx]
+- [2024.10.21] 
 
 ### Downloads
 
@@ -145,6 +145,29 @@ python compute_fitness.py \
     --base_dir data/$protein_dir \
     --out_scores_dir result/$protein_dir
 ```
+
+### Other Directed Evolution Tools
+
+You can use [ProtSSN (eLife 2024)](https://github.com/tyang816/ProtSSN) or [ProSST (NeurIPS 2024)](https://github.com/ai4protein/ProSST).
+
+### Questions
+
+#### Q: How to quickly convert the input format of ProtREM to ProtSSN or ProSST?
+
+A: For the conversion between ProtREM and ProtSSN input formats, you can refer to `script/data_format_convert.sh`. For the ProSST, jsut change the alpha to 0.
+
+```shell
+protein_dir=<your_protein_dir_name>
+python compute_fitness.py \
+    --base_dir data/$protein_dir \
+    --out_scores_dir result/$protein_dir \
+    --alpha 0 \
+    --model_out_name ProSST-2048
+```
+
+#### Q: What is the difference between ProtSSN, ProSST and ProtREM?
+
+A: ProtSSN uses modeling at the amino acid coordinate level, ProSST models on the local structure, and ProtREM explicitly introduces MSA information. They each have their own advantages and disadvantages in real experimental evaluation.
 
 ## 🙌 Citation
 
