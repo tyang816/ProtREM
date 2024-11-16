@@ -1,6 +1,6 @@
 # Retrieval-Enhanced Mutation Mastery: Augmenting Zero-Shot Prediction of Protein Language Model
 
-## 🚀 Introduction (ProtREM)
+## 🚀 Introduction (ProREM)
 
 <img src="img/framework.png" alt="framework">
 
@@ -12,8 +12,8 @@
 
 ### Downloads
 
-- ProteinGym a2m homology sequences (EVCouplings): https://huggingface.co/datasets/tyang816/ProtREM/blob/main/aa_seq_aln_a2m.tar.gz. The original a2m files are downloaded at [ProteinGym](https://github.com/OATML-Markslab/ProteinGym).
-- ProteinGym a3m homology sequences (ColabFold): https://huggingface.co/datasets/tyang816/ProtREM/blob/main/aa_seq_aln_a3m.tar.gz
+- ProteinGym a2m homology sequences (EVCouplings): https://huggingface.co/datasets/tyang816/ProREM/blob/main/aa_seq_aln_a2m.tar.gz. The original a2m files are downloaded at [ProteinGym](https://github.com/OATML-Markslab/ProteinGym).
+- ProteinGym a3m homology sequences (ColabFold): https://huggingface.co/datasets/tyang816/ProREM/blob/main/aa_seq_aln_a3m.tar.gz
 - Uniref 100 database: https://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref100/uniref100.fasta.gz
 
 ### Paper Results
@@ -28,7 +28,7 @@ Please make sure you have installed **[Anaconda3](https://www.anaconda.com/downl
 
 ```
 conda env create -f environment.yml
-conda activate protrem
+conda activate prorem
 
 # We need HMMER and EVCouplings for MSA
 # pip install hmmer
@@ -56,7 +56,7 @@ make all-openmp
 #### Prepare for the processed data
 ```shell
 cd data/proteingym_v1
-wget https://huggingface.co/datasets/tyang816/ProtREM/blob/main/aa_seq_aln_a2m.tar.gz
+wget https://huggingface.co/datasets/tyang816/ProREM/blob/main/aa_seq_aln_a2m.tar.gz
 # unzip homology files
 tar -xzf aa_seq_aln_a2m.tar.gz
 # unzip fasta sequence files
@@ -152,9 +152,9 @@ You can use [ProtSSN (eLife 2024)](https://github.com/tyang816/ProtSSN) or [ProS
 
 ### Questions
 
-#### Q: How to quickly convert the input format of ProtREM to ProtSSN or ProSST?
+#### Q: How to quickly convert the input format of ProREM to ProtSSN or ProSST?
 
-A: For the conversion between ProtREM and ProtSSN input formats, you can refer to `script/data_format_convert.sh`. For the ProSST, jsut change the alpha to 0.
+A: For the conversion between ProREM and ProtSSN input formats, you can refer to `script/data_format_convert.sh`. For the ProSST, jsut change the alpha to 0.
 
 ```shell
 protein_dir=<your_protein_dir_name>
@@ -165,16 +165,16 @@ python compute_fitness.py \
     --model_out_name ProSST-2048
 ```
 
-#### Q: What is the difference between ProtSSN, ProSST and ProtREM?
+#### Q: What is the difference between ProtSSN, ProSST and ProREM?
 
-A: ProtSSN uses modeling at the amino acid coordinate level, ProSST models on the local structure, and ProtREM explicitly introduces MSA information. They each have their own advantages and disadvantages in real experimental evaluation.
+A: ProtSSN uses modeling at the amino acid coordinate level, ProSST models on the local structure, and ProREM explicitly introduces MSA information. They each have their own advantages and disadvantages in real experimental evaluation.
 
 ## 🙌 Citation
 
 Please cite our work if you have used our code or data.
 
 ```
-@article{tan2024protrem,
+@article{tan2024prorem,
   title={Retrieval-Enhanced Mutation Mastery: Augmenting Zero-Shot Prediction of Protein Language Model},
   author={Tan, Yang and Wang, Ruilin and Wu, Banghao and Hong, Liang and Zhou, Bingxin},
   journal={arXiv:2410.21127},
